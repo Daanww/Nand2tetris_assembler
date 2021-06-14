@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/daan/Documents/vscodeprojects/assembler/build",
+  "command": "/bin/x86_64-linux-gnu-gcc-9   -g   -o CMakeFiles/assembler.dir/main.c.o   -c /home/daan/Documents/vscodeprojects/assembler/main.c",
+  "file": "/home/daan/Documents/vscodeprojects/assembler/main.c"
+}
+]
