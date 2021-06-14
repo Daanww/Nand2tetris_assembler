@@ -65,7 +65,7 @@ void format_line(char *buffer)
 {
 	char new_buffer[MAX_LINE_LENGTH] = {0};
 	int slash_flag = 0;
-	int long_comment_flag = 0;
+	static int long_comment_flag = 0; //long comment flag that carries over between lines, for /* */ comments
 	int new_buffer_index = 0;
 
 	//remove all whitespace and stop if it encounters //, /* or \n
@@ -92,6 +92,8 @@ void format_line(char *buffer)
 		}
 		if((buffer[i] == '*') && slash_flag) { //for handling /*  */
 			long_comment_flag = 1;
+			new_buffer[new_buffer_index-1] = '\0';
+			break;
 		}
 
 		slash_flag = 0;

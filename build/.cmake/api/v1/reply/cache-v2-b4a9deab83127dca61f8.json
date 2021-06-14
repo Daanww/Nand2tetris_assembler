@@ -1803,7 +1803,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "GITCOMMAND-NOTFOUND"
+			"value" : "/usr/bin/git"
 		},
 		{
 			"name" : "HGCOMMAND",
