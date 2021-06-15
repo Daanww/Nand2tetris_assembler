@@ -14,4 +14,10 @@ M=D
 */
 @2
 D=A
+D;JGT
+D;JEQ
+D;JGE
+D;JLT
+D;JNE
+D;JLE
 D;JMP

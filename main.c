@@ -205,14 +205,14 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 	if(buffer[jump_character_location+1] == 'J') {
 		switch(buffer[jump_character_location+2]) {
 			case 'G':
-				if(buffer[jump_character_location+2] == 'T') {
+				if(buffer[jump_character_location+3] == 'T') {
 					//JGT
 					jump_binary[0] = '0';
 					jump_binary[1] = '0';
 					jump_binary[2] = '1';
 					break;
 				}
-				else if(buffer[jump_character_location+2] == 'E') {
+				else if(buffer[jump_character_location+3] == 'E') {
 					//JGE
 					jump_binary[0] = '0';
 					jump_binary[1] = '1';
@@ -233,14 +233,14 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 				break;
 
 			case 'L':
-				if(buffer[jump_character_location+2] == 'T') {
+				if(buffer[jump_character_location+3] == 'T') {
 					//JLT
 					jump_binary[0] = '1';
 					jump_binary[1] = '0';
 					jump_binary[2] = '0';
 					break;
 				}
-				else if(buffer[jump_character_location+2] == 'E') {
+				else if(buffer[jump_character_location+3] == 'E') {
 					//JLE
 					jump_binary[0] = '1';
 					jump_binary[1] = '1';
@@ -266,6 +266,13 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 				jump_binary[1] = '1';
 				jump_binary[2] = '1';
 				break;
+
+			default :
+				//null
+				jump_binary[0] = '0';
+				jump_binary[1] = '0';
+				jump_binary[2] = '0';
+				break;
 		}
 
 	}
@@ -276,6 +283,25 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 	return jump_binary;
 }
 
+//returns a pointer to string of 3 characters that are the dest part of the binary D-instruction
+//returns NULL on error
+char* get_dest_binary(char *buffer, int dest_character_location) {
+	
+	static char dest_binary[4] = {'0', '0', '0','\0'};
+
+	//assuming that the instruction starts with the destination, for example: DM=D+1
+	//thus searching through the first n characters of the string defined by dest_character_location
+	//and then checking if that character is 'A', 'D' or 'M' and setting that bit if it is
+	for(int i = 0; i < dest_character_location; i++) {
+		if(buffer[i] == 'A')
+			dest_binary[0] = '1';
+		if(buffer[i] == 'D')
+			dest_binary[1] = '1';
+		if(buffer[i] == 'M')
+			dest_binary[2] = '1';
+	}
+	return dest_binary;
+}
 
 int main( int argc, char *argv[]) {
 
@@ -321,11 +347,17 @@ int main( int argc, char *argv[]) {
 			char *jump_binary = NULL;
 			if(jump_loc != 0) {
 				jump_binary = get_jump_binary(asm_buffer, jump_loc);
-			printf("D-Instruction Jump: %s\n", jump_binary);
+				printf("D-Instruction Jump: %s\n", jump_binary);
 			}
 			else {
 				printf("D-Instruction does not contain jump!\n");
-				//return 0;
+			}
+
+			int dest_loc = contains_dest(asm_buffer);
+			char *dest_binary = NULL;
+			if(dest_loc != 0) {
+				dest_binary = get_dest_binary(asm_buffer, dest_loc);
+				printf("D-Instruction Dest: %s\n", dest_binary);
 			}
 			
 		
