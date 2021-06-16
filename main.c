@@ -1,13 +1,67 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define MAX_LINE_LENGTH 128
 
-enum {
+enum { //error types
 	QUIT_APPLICATION = 1,
 	EOF_INDICATOR = 2
 };
+
+enum { //error string data types
+	A_INSTRUCTION,
+	DEST,
+	COMP,
+	JUMP
+};
+
+//global variables
+int current_line_raw = 0; //current line in the unformatted document that is being read as input, starting at line 0
+bool keep_reading = true;
+
+void handle_error(char* erroneous_string, int string_data_type, int error_type) {
+
+
+	if(error_type == QUIT_APPLICATION) {
+		char *string_data_type_string = NULL;
+
+		const char A_instruction_string[] = "A_instruction";
+		const char DEST_string[] = "dest";
+		const char COMP_string[] = "comp";
+		const char JUMP_string[] = "jump";
+		switch (string_data_type)
+		{
+		case A_INSTRUCTION:
+			string_data_type_string = &A_instruction_string;
+			break;
+		
+		case DEST:
+			string_data_type_string = &DEST_string;
+			break;
+
+		case COMP:
+			string_data_type_string = &COMP_string;
+			break;
+
+		case JUMP:
+			string_data_type_string = &JUMP_string;
+			break;
+
+		default:
+			break;
+		}
+
+		printf("ERROR: On line %i: \"%s\" is not a %s.\n", current_line_raw, erroneous_string, string_data_type_string);
+
+		
+	}
+	else if(error_type == EOF_INDICATOR) {
+		printf("End of file reached!\n");
+	}
+	keep_reading = false;
+}
 
 //checks arguments given when the program is executed
 int check_arguments(int argc, char *argv[]) {
@@ -289,6 +343,10 @@ char* get_dest_binary(char *buffer, int dest_character_location) {
 	
 	static char dest_binary[4] = {'0', '0', '0','\0'};
 
+	//resetting the string every function call
+	dest_binary[0] = '0';
+	dest_binary[1] = '0';
+	dest_binary[2] = '0';
 	//assuming that the instruction starts with the destination, for example: DM=D+1
 	//thus searching through the first n characters of the string defined by dest_character_location
 	//and then checking if that character is 'A', 'D' or 'M' and setting that bit if it is
@@ -302,6 +360,117 @@ char* get_dest_binary(char *buffer, int dest_character_location) {
 	}
 	return dest_binary;
 }
+
+//returns a pointer to string of 7 characters (a and c1 to c6) that are the comp part of the binary D-instruction
+//returns NULL on error
+char* get_comp_binary(char *buffer, int dest_character_location, int jump_character_location) {
+
+	static char comp_binary[8] = {'0', '0', '0', '0', '0', '0', '0', '\0'};
+	
+	//resetting comp_binary to allow multiple function calls
+	comp_binary[0] = '0';
+	comp_binary[1] = '0';
+	comp_binary[2] = '0';
+	comp_binary[3] = '0';
+	comp_binary[4] = '0';
+	comp_binary[5] = '0';
+	comp_binary[6] = '0';
+
+
+	int start_of_comp = 0;
+	int end_of_comp = 0;
+
+	//if the instruction contains a dest, skip the beginning characters
+	if(dest_character_location != 0) {
+		start_of_comp = dest_character_location + 1;
+	}
+
+	//if the instruction contains a jump, skip the ending characters
+	if(jump_character_location != 0) {
+		end_of_comp = jump_character_location - 1;
+	}
+	else {
+		end_of_comp = strlen(buffer) - 1; //set end of comp to the index of the final character in the string
+	}
+
+	//A comp can be 1, 2 or 3 characters long. Ive chosen to split the matching process of the input buffer and the reference comp characters in 3 parts according to string length
+	//e.g. first check if the comp is 1, 2 or 3 characters long then start trying to match the input to the reference comps
+	int comp_length = end_of_comp - start_of_comp;
+
+	if(comp_length == 1) {
+		//handle comp (0, 1, D, A, M)
+		switch (buffer[start_of_comp])
+		{
+
+		case '0': //comp 0 is code 0101010
+			comp_binary[0] = '0';
+			comp_binary[1] = '1';
+			comp_binary[2] = '0';
+			comp_binary[3] = '1';
+			comp_binary[4] = '0';
+			comp_binary[5] = '1';
+			comp_binary[6] = '0';			
+			break;
+		
+		case '1': //comp 1 is code 0111111
+			comp_binary[0] = '0';
+			comp_binary[1] = '1';
+			comp_binary[2] = '1';
+			comp_binary[3] = '1';
+			comp_binary[4] = '1';
+			comp_binary[5] = '1';
+			comp_binary[6] = '1';			
+			break;
+
+		case 'D': //comp D is code 0001100
+			comp_binary[0] = '0';
+			comp_binary[1] = '0';
+			comp_binary[2] = '0';
+			comp_binary[3] = '1';
+			comp_binary[4] = '1';
+			comp_binary[5] = '0';
+			comp_binary[6] = '0';			
+			break;
+
+		case 'A': //comp A is code 0110000
+			comp_binary[0] = '0';
+			comp_binary[1] = '1';
+			comp_binary[2] = '1';
+			comp_binary[3] = '0';
+			comp_binary[4] = '0';
+			comp_binary[5] = '0';
+			comp_binary[6] = '0';			
+			break;
+
+		case 'M': //comp M is code 1110000
+			comp_binary[0] = '1';
+			comp_binary[1] = '1';
+			comp_binary[2] = '1';
+			comp_binary[3] = '0';
+			comp_binary[4] = '0';
+			comp_binary[5] = '0';
+			comp_binary[6] = '0';			
+			break;	
+		
+		default:
+			//handle error
+			break;
+		}
+	}
+	else if(comp_length == 2) {
+		//handle comp (-1, !D, !A, -D, -A, !M, -M)
+	}
+	else if(comp_length == 3) {
+		//handle comp (D+1, A+1, D-1, A-1, D+A, D-A, A-D, D&A, D|A, M+1, M-1, D+M, D-M, M-D, D&M, D|M)
+	}
+	else {
+		//handle errors
+	}
+
+	return comp_binary;
+}
+
+
 
 int main( int argc, char *argv[]) {
 
@@ -325,6 +494,7 @@ int main( int argc, char *argv[]) {
 	char asm_buffer[MAX_LINE_LENGTH] = {0};
 
 	while(read_line(asm_file, asm_buffer) == 0) {
+		//format line, removing comments and whitespace
 		format_line(asm_buffer);
 		if(strlen(asm_buffer) == 0) //skipping line if its length is zero after formatting
 			continue;
