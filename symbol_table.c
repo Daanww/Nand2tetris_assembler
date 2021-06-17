@@ -9,7 +9,13 @@
 //first a string gets hashed to one of the buckets
 //then % N_SLOTS on the hash to identify the slots in the bucket
 //this should keep the number of collisions at a minimum
-static int table[MAX_TABLE_SIZE * N_SLOTS] = {-1};
+static int table[MAX_TABLE_SIZE * N_SLOTS] = {0};
+
+void initialize_table() {
+	for(int i = 0; i < (MAX_TABLE_SIZE * N_SLOTS); i++) {
+		table[i] = -1;
+	}
+}
 
 //based on the polynomial rolling hash function
 static unsigned long compute_hash(char *string) {

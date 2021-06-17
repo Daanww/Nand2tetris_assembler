@@ -811,6 +811,7 @@ char* get_comp_binary(char *buffer, int jump_character_location, int dest_charac
 }
 
 void initialize_symbol_table() {
+	initialize_table();
 	add_entry_symbol_table("SP", 0);
 	add_entry_symbol_table("LCL", 1);
 	add_entry_symbol_table("ARG", 2);
@@ -878,6 +879,9 @@ int main( int argc, char *argv[]) {
 
 	//*/
 
+	//initializing symbol table for labels/variables
+	initialize_symbol_table();
+
 	//FIRST PASS-------------------------------------
 	printf("FIRST PASS---------------\n");
 	int ROM_address = 0;
@@ -941,6 +945,7 @@ int main( int argc, char *argv[]) {
 				//first check if the variable already exists in the symbol table
 				if(contains_entry_symbol_table(variable_name)) {
 					variable_value = get_address_entry_symbol_table(variable_name);
+					printf("Retrieved \"%s\" with value %i from symbol table!\n", variable_name, variable_value);
 				}
 				else {
 					//add new variable to symbol table, assigning it the next free ram address
@@ -977,10 +982,10 @@ int main( int argc, char *argv[]) {
 			char *jump_binary = NULL;
 			if(jump_loc != 0) {
 				jump_binary = get_jump_binary(asm_buffer, jump_loc);
-				printf("D-Instruction Jump: %s\n", jump_binary);
+				//printf("D-Instruction Jump: %s\n", jump_binary);
 			}
 			else {
-				printf("D-Instruction does not contain jump!\n");
+				//printf("D-Instruction does not contain jump!\n");
 				jump_binary = "000";
 			}
 
@@ -989,18 +994,18 @@ int main( int argc, char *argv[]) {
 			char *dest_binary = NULL;
 			if(dest_loc != 0) {
 				dest_binary = get_dest_binary(asm_buffer, dest_loc);
-				printf("D-Instruction Dest: %s\n", dest_binary);
+				//printf("D-Instruction Dest: %s\n", dest_binary);
 				
 			}
 			else {
-				printf("D-Instruction does not contain dest!\n");
+				//printf("D-Instruction does not contain dest!\n");
 				dest_binary = "000";
 			}
 			
 			//handle comp part
 			char *comp_binary = NULL;
 			comp_binary = get_comp_binary(asm_buffer, jump_loc, dest_loc);
-			printf("D-Instruction Comp: %s\n", comp_binary);
+			//printf("D-Instruction Comp: %s\n", comp_binary);
 		
 
 			//concatenate all parts together and parse into .hack file

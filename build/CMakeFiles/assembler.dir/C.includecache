@@ -6,9 +6,21 @@
 
 #IncludeRegexTransform: 
 
-/home/daan/Documents/vscodeprojects/assembler/symbol_table.c
-stdbool.h
+/home/daan/Documents/vscodeprojects/assembler/main.c
+stdlib.h
+-
+stdio.h
 -
 string.h
+-
+math.h
+-
+stdbool.h
+-
+symbol_table.h
+/home/daan/Documents/vscodeprojects/assembler/symbol_table.h
+
+/home/daan/Documents/vscodeprojects/assembler/symbol_table.h
+stdbool.h
 -
 
