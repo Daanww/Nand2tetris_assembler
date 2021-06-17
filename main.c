@@ -955,6 +955,8 @@ int main( int argc, char *argv[]) {
 					printf("Added \"%s\" with value %i to symbol table!\n", variable_name, variable_value);
 				}
 
+				//set all of asm_buffer except [0] to 0 to clean it up
+				memset(&asm_buffer[1], 0, 127);
 				//parse the decimal number into asm_buffer
 				sprintf(&asm_buffer[1], "%i", variable_value);
 			}
