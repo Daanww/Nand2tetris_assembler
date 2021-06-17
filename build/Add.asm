@@ -12,9 +12,13 @@
 //@0
 //M=D
 
-@15
+@i
 D=A
 A=M-D
 MD=-1;JNE
 AM=D|A;JEQ
 AMD=-M;JLE
+@20
+D=A
+@i
+D=D+A

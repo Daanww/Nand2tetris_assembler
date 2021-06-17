@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/assembler.dir/main.c.o"
+  "CMakeFiles/assembler.dir/symbol_table.c.o"
   "assembler"
   "assembler.pdb"
 )

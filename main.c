@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 
+#include "symbol_table.h"
+
 #define MAX_LINE_LENGTH 128
 
 enum { //error types
@@ -159,10 +161,28 @@ void format_line(char *buffer)
 	memcpy(buffer, &new_buffer, (MAX_LINE_LENGTH * sizeof(char)));
 }
 
+//checks if a A_instruction contains a variable or a hard coded number
+bool is_variable(char *buffer) {
+	//check if buffer contains only @ and digits
+	int digit_length = 0;
+	char digits[] = "1234567890";
+	digit_length = strspn(&buffer[1], digits); //start scanning at buffer[1] because buffer[0] should be @
+	int string_length = strlen(buffer);
+	if((digit_length + 1) != string_length) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 //converts the decimal number contained in the A-instruction to a binary representation that can be parsed into the .hack file
 void convert_dec_to_bin(char *buffer)
 {
 	int error = 0;
+
+	//legacy code for checking if buffer is a valid @ instruction, might be needed if is_variable() doest work properly
+	/*
 	//check if buffer contains only @ and digits
 	int digit_length = 0;
 	char digits[] = "1234567890";
@@ -172,6 +192,7 @@ void convert_dec_to_bin(char *buffer)
 		printf("ERROR: An A-instruction someting other than digits.\n");
 		handle_asm_code_error(buffer, A_INSTRUCTION);
 	}
+	*/
 
 	//converting the string number in the A-instruction into an actual number
 
@@ -789,6 +810,31 @@ char* get_comp_binary(char *buffer, int jump_character_location, int dest_charac
 	return comp_binary;
 }
 
+void initialize_symbol_table() {
+	add_entry_symbol_table("SP", 0);
+	add_entry_symbol_table("LCL", 1);
+	add_entry_symbol_table("ARG", 2);
+	add_entry_symbol_table("THIS", 3);
+	add_entry_symbol_table("THAT", 4);
+	add_entry_symbol_table("R0", 0);
+	add_entry_symbol_table("R1", 1);
+	add_entry_symbol_table("R2", 2);
+	add_entry_symbol_table("R3", 3);
+	add_entry_symbol_table("R4", 4);
+	add_entry_symbol_table("R5", 5);
+	add_entry_symbol_table("R6", 6);
+	add_entry_symbol_table("R7", 7);
+	add_entry_symbol_table("R8", 8);
+	add_entry_symbol_table("R9", 9);
+	add_entry_symbol_table("R10", 10);
+	add_entry_symbol_table("R11", 11);
+	add_entry_symbol_table("R12", 12);
+	add_entry_symbol_table("R13", 13);
+	add_entry_symbol_table("R14", 14);
+	add_entry_symbol_table("R15", 15);
+	add_entry_symbol_table("SCREEN", 16384);
+	add_entry_symbol_table("KBD", 24576);
+}
 
 
 int main( int argc, char *argv[]) {
@@ -832,8 +878,41 @@ int main( int argc, char *argv[]) {
 
 	//*/
 
+	//FIRST PASS-------------------------------------
+	printf("FIRST PASS---------------\n");
+	int ROM_address = 0;
+
+	char first_pass_buffer[MAX_LINE_LENGTH] = {0};
+	while(read_line(asm_file, first_pass_buffer) == 0) {
+		format_line(first_pass_buffer);
+		if(strlen(first_pass_buffer) == 0) //skipping line if its length is zero after formatting
+			continue;
+
+		//find label and add it to symbol table
+		//assumes labels are identified as: (Xxx) after formatting
+		if(first_pass_buffer[0] == '(') {
+			char label_name[128] = {0};
+			int string_length = strlen(first_pass_buffer);
+			strncpy(label_name, &first_pass_buffer[1], (string_length - 2));
+			label_name[string_length - 1] = '\0';
+			add_entry_symbol_table(label_name, ROM_address);
+			printf("Added \"%s\" with value %i to symbol table!\n", label_name, ROM_address);
+			continue;
+		}
+		
+		ROM_address++;
+	}
+
+	rewind(asm_file);
+
+	//SECOND PASS------------------------------------
+	printf("SECOND PASS----------------\n");
+
 	//parsing lines from asm file, converting them, then parsing into hack file
 	char asm_buffer[MAX_LINE_LENGTH] = {0};
+
+	//current lowest ram address that is still free for allocation
+	int lowest_RAM_address = 16;
 
 	while(read_line(asm_file, asm_buffer) == 0) {
 		//format line, removing comments and whitespace
@@ -848,11 +927,46 @@ int main( int argc, char *argv[]) {
 		{
 			//handle A-instruction
 
-			//convert the decimal number to binary code and parse the instruction into the .hack file
+			//handle variables
+			if(is_variable(asm_buffer)) {
+				int variable_value = 0;
+
+				//get the variable name
+				char variable_name[128] = {0};
+				strncpy(variable_name, &asm_buffer[1], 128);
+				if(variable_name[127] != '\0') {
+					handle_asm_code_error(asm_buffer, A_INSTRUCTION);
+				}
+
+				//first check if the variable already exists in the symbol table
+				if(contains_entry_symbol_table(variable_name)) {
+					variable_value = get_address_entry_symbol_table(variable_name);
+				}
+				else {
+					//add new variable to symbol table, assigning it the next free ram address
+					add_entry_symbol_table(variable_name, lowest_RAM_address);
+					variable_value = lowest_RAM_address;
+					lowest_RAM_address++;
+					printf("Added \"%s\" with value %i to symbol table!\n", variable_name, variable_value);
+				}
+
+				//parse the decimal number into asm_buffer
+				sprintf(&asm_buffer[1], "%i", variable_value);
+			}
+			
+			//convert the decimal number to binary code 
 			convert_dec_to_bin(asm_buffer);
+		
+			//Parse the instruction into the .hack file
 			printf("A-Instruction Line: %s\n", asm_buffer);
 			fputs(asm_buffer, hack_file);
 			fputc('\n', hack_file);
+		}
+
+		else if(asm_buffer[0] == '(') {
+			//handle labels
+			//labels are handled in the first pass, thus a label will just be skipped in the second pass
+			continue;
 		}
 		else {
 		

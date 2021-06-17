@@ -1,1 +1,1 @@
-/bin/x86_64-linux-gnu-gcc-9 -g  -rdynamic CMakeFiles/assembler.dir/main.c.o  -o assembler  -lm 
+/bin/x86_64-linux-gnu-gcc-9 -g  -rdynamic CMakeFiles/assembler.dir/main.c.o CMakeFiles/assembler.dir/symbol_table.c.o  -o assembler  -lm 

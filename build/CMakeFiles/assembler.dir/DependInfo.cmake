@@ -5,6 +5,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
   "/home/daan/Documents/vscodeprojects/assembler/main.c" "/home/daan/Documents/vscodeprojects/assembler/build/CMakeFiles/assembler.dir/main.c.o"
+  "/home/daan/Documents/vscodeprojects/assembler/symbol_table.c" "/home/daan/Documents/vscodeprojects/assembler/build/CMakeFiles/assembler.dir/symbol_table.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 
