@@ -840,7 +840,7 @@ void initialize_symbol_table() {
 
 int main( int argc, char *argv[]) {
 
-	/*
+	
 
 	//checking arguments
 	if(check_arguments(argc, argv) == QUIT_APPLICATION) { return 0;}
@@ -858,26 +858,26 @@ int main( int argc, char *argv[]) {
 	strcat(hack_file_name, ".hack");
 	FILE *hack_file = fopen(hack_file_name, "w");
 
-	/**/
+	/*
 
 	//--------- following section is different for debugging
 
 	//opening .asm file
-	FILE *asm_file = fopen("Add.asm", "r");
+	FILE *asm_file = fopen("Mult.asm", "r");
 	if(asm_file == NULL) {
-		printf("ERROR: file \"%s\" is not found.\n", "Add.asm");
+		printf("ERROR: file \"%s\" is not found.\n", "Mult.asm");
 		return 0;
 	}
 
 	//opening .hack file
 	char hack_file_name[64];
-	strncpy(hack_file_name, "Add.asm", (strlen("Add.asm") - 4));
+	strncpy(hack_file_name, "Mult.asm", (strlen("Mult.asm") - 4));
 	strcat(hack_file_name, ".hack");
 	FILE *hack_file = fopen(hack_file_name, "w");
 
 	//-----------
 
-	//*/
+	*/
 
 	//initializing symbol table for labels/variables
 	initialize_symbol_table();
