@@ -4,17 +4,17 @@
 // File name: projects/06/add/Add.asm
 
 // Computes R0 = 2 + 3  (R0 refers to RAM[0])
-/*
-@2
+
+//@2
+//D=A
+//@3
+//D=D+A
+//@0
+//M=D
+
+@15
 D=A
-@3
-D=D+A
-@0
-M=D
-*/
-@2
-D=A
-A=D
-MD=A;JNE
-AM=D;JEQ
-MAD=M;JLE
+A=M-D
+MD=-1;JNE
+AM=D|A;JEQ
+AMD=-M;JLE

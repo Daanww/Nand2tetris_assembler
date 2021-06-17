@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -18,35 +19,33 @@ enum { //error string data types
 };
 
 //global variables
-int current_line_raw = 0; //current line in the unformatted document that is being read as input, starting at line 0
-bool keep_reading = true;
+int current_line_raw = 0; //current line in the unformatted document that is being read as input, starting at line 1
 
-void handle_error(char* erroneous_string, int string_data_type, int error_type) {
+void handle_asm_code_error(char* erroneous_string, int string_data_type) {
 
-
-	if(error_type == QUIT_APPLICATION) {
-		char *string_data_type_string = NULL;
+		const char *string_data_type_string = NULL;
 
 		const char A_instruction_string[] = "A_instruction";
 		const char DEST_string[] = "dest";
 		const char COMP_string[] = "comp";
 		const char JUMP_string[] = "jump";
+
 		switch (string_data_type)
 		{
 		case A_INSTRUCTION:
-			string_data_type_string = &A_instruction_string;
+			string_data_type_string = A_instruction_string;
 			break;
 		
 		case DEST:
-			string_data_type_string = &DEST_string;
+			string_data_type_string = DEST_string;
 			break;
 
 		case COMP:
-			string_data_type_string = &COMP_string;
+			string_data_type_string = COMP_string;
 			break;
 
 		case JUMP:
-			string_data_type_string = &JUMP_string;
+			string_data_type_string = JUMP_string;
 			break;
 
 		default:
@@ -55,12 +54,7 @@ void handle_error(char* erroneous_string, int string_data_type, int error_type) 
 
 		printf("ERROR: On line %i: \"%s\" is not a %s.\n", current_line_raw, erroneous_string, string_data_type_string);
 
-		
-	}
-	else if(error_type == EOF_INDICATOR) {
-		printf("End of file reached!\n");
-	}
-	keep_reading = false;
+		exit(0);
 }
 
 //checks arguments given when the program is executed
@@ -96,6 +90,8 @@ int check_arguments(int argc, char *argv[]) {
 //reads a line from .asm file
 int read_line(FILE *file, char *buffer)
 {
+	current_line_raw++; //updating to the next line
+
 	int error = 0;
 	char *EOF_check = NULL;
 	EOF_check = fgets(buffer, MAX_LINE_LENGTH, file);
@@ -164,7 +160,7 @@ void format_line(char *buffer)
 }
 
 //converts the decimal number contained in the A-instruction to a binary representation that can be parsed into the .hack file
-int convert_dec_to_bin(char *buffer)
+void convert_dec_to_bin(char *buffer)
 {
 	int error = 0;
 	//check if buffer contains only @ and digits
@@ -174,8 +170,7 @@ int convert_dec_to_bin(char *buffer)
 	int string_length = strlen(buffer);
 	if((digit_length + 1) != string_length) {
 		printf("ERROR: An A-instruction someting other than digits.\n");
-		error = QUIT_APPLICATION;
-		return error;
+		handle_asm_code_error(buffer, A_INSTRUCTION);
 	}
 
 	//converting the string number in the A-instruction into an actual number
@@ -200,8 +195,7 @@ int convert_dec_to_bin(char *buffer)
 	//checking if number > 32767
 	if(number > 32767) {
 		printf("ERROR: An A-instruction can hold a maximum value of 32767.\n");
-		error = QUIT_APPLICATION;
-		return error;
+		handle_asm_code_error(buffer, A_INSTRUCTION);
 	}
 
 	char new_buffer[MAX_LINE_LENGTH] = {0};
@@ -227,7 +221,6 @@ int convert_dec_to_bin(char *buffer)
 	//copying new_buffer to buffer
 	memcpy(buffer, &new_buffer, (MAX_LINE_LENGTH * sizeof(char)));
 
-	return error;
 }
 
 //check if a D-instruction contains a jump and returns the location of the jump character ';'
@@ -251,7 +244,7 @@ int contains_dest(char *buffer) {
 }
 
 //returns a pointer to string of 3 characters that are the jump part of the binary D-instruction
-//returns NULL on error
+//returns "000" on error
 char* get_jump_binary(char *buffer, int jump_character_location) {
 	
 	static char jump_binary[4] = {'\0'};
@@ -276,6 +269,7 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 				else {
 					//handle error
 					printf("ERROR: Unkown Jump condition.\n");
+					handle_asm_code_error(buffer, JUMP);
 					return NULL;
 				}
 
@@ -304,7 +298,7 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 				else {
 					//handle error
 					printf("ERROR: Unkown Jump condition.\n");
-					return NULL;
+					handle_asm_code_error(buffer, JUMP);
 				}
 
 			case 'N':
@@ -326,19 +320,22 @@ char* get_jump_binary(char *buffer, int jump_character_location) {
 				jump_binary[0] = '0';
 				jump_binary[1] = '0';
 				jump_binary[2] = '0';
+				printf("ERROR: Unkown Jump condition.\n");
+				handle_asm_code_error(buffer, JUMP);
+
 				break;
 		}
 
 	}
 	else {
 		printf("ERROR: Cant find 'J' in jump part of D-instruction.\n");
-		return NULL;
+		handle_asm_code_error(buffer, JUMP);
 	}
 	return jump_binary;
 }
 
 //returns a pointer to string of 3 characters that are the dest part of the binary D-instruction
-//returns NULL on error
+//returns "000" on error
 char* get_dest_binary(char *buffer, int dest_character_location) {
 	
 	static char dest_binary[4] = {'0', '0', '0','\0'};
@@ -353,17 +350,20 @@ char* get_dest_binary(char *buffer, int dest_character_location) {
 	for(int i = 0; i < dest_character_location; i++) {
 		if(buffer[i] == 'A')
 			dest_binary[0] = '1';
-		if(buffer[i] == 'D')
+		else if(buffer[i] == 'D')
 			dest_binary[1] = '1';
-		if(buffer[i] == 'M')
+		else if(buffer[i] == 'M')
 			dest_binary[2] = '1';
+		else {
+			handle_asm_code_error(buffer, DEST);
+		}
 	}
 	return dest_binary;
 }
 
 //returns a pointer to string of 7 characters (a and c1 to c6) that are the comp part of the binary D-instruction
 //returns NULL on error
-char* get_comp_binary(char *buffer, int dest_character_location, int jump_character_location) {
+char* get_comp_binary(char *buffer, int jump_character_location, int dest_character_location) {
 
 	static char comp_binary[8] = {'0', '0', '0', '0', '0', '0', '0', '\0'};
 	
@@ -395,7 +395,7 @@ char* get_comp_binary(char *buffer, int dest_character_location, int jump_charac
 
 	//A comp can be 1, 2 or 3 characters long. Ive chosen to split the matching process of the input buffer and the reference comp characters in 3 parts according to string length
 	//e.g. first check if the comp is 1, 2 or 3 characters long then start trying to match the input to the reference comps
-	int comp_length = end_of_comp - start_of_comp;
+	int comp_length = end_of_comp - start_of_comp + 1;
 
 	if(comp_length == 1) {
 		//handle comp (0, 1, D, A, M)
@@ -454,17 +454,336 @@ char* get_comp_binary(char *buffer, int dest_character_location, int jump_charac
 		
 		default:
 			//handle error
+			handle_asm_code_error(buffer, COMP);
 			break;
 		}
 	}
 	else if(comp_length == 2) {
-		//handle comp (-1, !D, !A, -D, -A, !M, -M)
+		//handle comp (-1, -D, -A, -M, !D, !A, !M)
+		if(buffer[start_of_comp] == '-') {
+			switch (buffer[start_of_comp + 1])
+			{
+			case '1': //comp -1 is code 0111010
+				comp_binary[0] = '0';
+				comp_binary[1] = '1';
+				comp_binary[2] = '1';
+				comp_binary[3] = '1';
+				comp_binary[4] = '0';
+				comp_binary[5] = '1';
+				comp_binary[6] = '0';
+				break;
+			
+			case 'D': //comp -D is code 0001111
+				comp_binary[0] = '0';
+				comp_binary[1] = '0';
+				comp_binary[2] = '0';
+				comp_binary[3] = '1';
+				comp_binary[4] = '1';
+				comp_binary[5] = '1';
+				comp_binary[6] = '1';
+				break;
+
+			case 'A': //comp -A is code 0110011
+				comp_binary[0] = '0';
+				comp_binary[1] = '1';
+				comp_binary[2] = '1';
+				comp_binary[3] = '0';
+				comp_binary[4] = '0';
+				comp_binary[5] = '1';
+				comp_binary[6] = '1';
+				break;
+
+			case 'M': //comp -M is code 1110011
+				comp_binary[0] = '1';
+				comp_binary[1] = '1';
+				comp_binary[2] = '1';
+				comp_binary[3] = '0';
+				comp_binary[4] = '0';
+				comp_binary[5] = '1';
+				comp_binary[6] = '1';
+				break;
+
+
+			default:
+				//handle error
+				handle_asm_code_error(buffer, COMP);
+				break;
+			}
+		}
+		else if(buffer[start_of_comp] == '!') {
+			switch (buffer[start_of_comp + 1])
+			{
+			
+			case 'D': //comp !D is code 0001101
+				comp_binary[0] = '0';
+				comp_binary[1] = '0';
+				comp_binary[2] = '0';
+				comp_binary[3] = '1';
+				comp_binary[4] = '1';
+				comp_binary[5] = '0';
+				comp_binary[6] = '1';
+				break;
+
+			case 'A': //comp !A is code 0110001
+				comp_binary[0] = '0';
+				comp_binary[1] = '1';
+				comp_binary[2] = '1';
+				comp_binary[3] = '0';
+				comp_binary[4] = '0';
+				comp_binary[5] = '0';
+				comp_binary[6] = '1';
+				break;
+
+			case 'M': //comp !M is code 1110001
+				comp_binary[0] = '1';
+				comp_binary[1] = '1';
+				comp_binary[2] = '1';
+				comp_binary[3] = '0';
+				comp_binary[4] = '0';
+				comp_binary[5] = '0';
+				comp_binary[6] = '1';
+				break;
+
+			default:
+				//handle error
+				handle_asm_code_error(buffer, COMP);
+				break;
+			}
+		}
+		else {
+			//handle error
+			handle_asm_code_error(buffer, COMP);
+		}
 	}
 	else if(comp_length == 3) {
 		//handle comp (D+1, A+1, D-1, A-1, D+A, D-A, A-D, D&A, D|A, M+1, M-1, D+M, D-M, M-D, D&M, D|M)
+		//sorted for branching: D+1, D+A, D+M, D-1, D-A, D-M, D&A, D&M, D|A, D|M, A+1, A-1, A-D, M+1, M-1, M-D
+		//first select on first character then second character then final character
+
+		if(buffer[start_of_comp] == 'D') {
+			if(buffer[start_of_comp + 1] == '+') {
+				if(buffer[start_of_comp + 2] == '1') {
+					//comp D+1 is code 0011111
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '1';
+					comp_binary[3] = '1';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+				}
+				else if(buffer[start_of_comp + 2] == 'A') {
+					//comp D+A is code 0000010
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '0';
+				}
+				else if(buffer[start_of_comp + 2] == 'M') {
+					//comp D+M is code 1000010
+					comp_binary[0] = '1';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '0';
+				}
+				else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);	
+				}
+			}
+			else if(buffer[start_of_comp + 1] == '-') {
+				if(buffer[start_of_comp + 2] == '1') {
+					//comp D-1 is code 0001110
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '1';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '0';
+				}
+				else if(buffer[start_of_comp + 2] == 'A') {
+					//comp D-A is code 0010011
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+				}
+				else if(buffer[start_of_comp + 2] == 'M') {
+					//comp D-M is code 1010011
+					comp_binary[0] = '1';
+					comp_binary[1] = '0';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+				}
+				else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);	
+				}
+			}
+			else if(buffer[start_of_comp + 1] == '&') {
+				if(buffer[start_of_comp + 2] == 'A') {
+					//comp D&A is code 0000000
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '0';
+					comp_binary[6] = '0';
+				}
+				else if(buffer[start_of_comp + 2] == 'M') {
+					//comp D&M is code 1000000
+					comp_binary[0] = '1';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '0';
+					comp_binary[6] = '0';
+				}
+				else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);	
+				}
+			}
+			else if(buffer[start_of_comp + 1] == '|') {
+				if(buffer[start_of_comp + 2] == 'A') {
+					//comp D|A is code 0010101
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '0';
+					comp_binary[6] = '1';
+				}
+				else if(buffer[start_of_comp + 2] == 'M') {
+					//comp D|M is code 1010101
+					comp_binary[0] = '1';
+					comp_binary[1] = '0';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '0';
+					comp_binary[6] = '1';
+				}
+				else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);	
+				}
+			}
+			else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);	
+			}
+
+		}
+		else if(buffer[start_of_comp] == 'A') {
+			if(buffer[start_of_comp + 1] == '+') {
+					//comp A+1 is code 0110111
+					comp_binary[0] = '0';
+					comp_binary[1] = '1';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+			}
+			else if(buffer[start_of_comp + 1] == '-') {
+				if(buffer[start_of_comp + 2] == '1') {
+					//comp A-1 is code 0110010
+					comp_binary[0] = '0';
+					comp_binary[1] = '1';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '0';
+				}
+				else if(buffer[start_of_comp + 2] == 'D') {
+					//comp A-D is code 0000111
+					comp_binary[0] = '0';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+				}
+				else {
+					//handle error
+					handle_asm_code_error(buffer, COMP);
+				}
+			}
+			else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);
+			}
+		}
+		else if(buffer[start_of_comp] == 'M') {
+			if(buffer[start_of_comp + 1] == '+') {
+					//comp M+1 is code 1110111
+					comp_binary[0] = '1';
+					comp_binary[1] = '1';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+			}
+			else if(buffer[start_of_comp + 1] == '-') {
+				if(buffer[start_of_comp + 2] == '1') {
+					//comp M-1 is code 1110010
+					comp_binary[0] = '1';
+					comp_binary[1] = '1';
+					comp_binary[2] = '1';
+					comp_binary[3] = '0';
+					comp_binary[4] = '0';
+					comp_binary[5] = '1';
+					comp_binary[6] = '0';
+				}
+				else if(buffer[start_of_comp + 2] == 'D') {
+					//comp M-D is code 1000111
+					comp_binary[0] = '1';
+					comp_binary[1] = '0';
+					comp_binary[2] = '0';
+					comp_binary[3] = '0';
+					comp_binary[4] = '1';
+					comp_binary[5] = '1';
+					comp_binary[6] = '1';
+				}
+				else {
+					//handle error
+					handle_asm_code_error(buffer, COMP);
+				}
+			}
+			else {
+				//handle error
+				handle_asm_code_error(buffer, COMP);
+			}
+		}
+		else {
+			//handle error
+			handle_asm_code_error(buffer, COMP);
+		}
+
 	}
 	else {
 		//handle errors
+		handle_asm_code_error(buffer, COMP);
 	}
 
 	return comp_binary;
@@ -473,6 +792,8 @@ char* get_comp_binary(char *buffer, int dest_character_location, int jump_charac
 
 
 int main( int argc, char *argv[]) {
+
+	/*
 
 	//checking arguments
 	if(check_arguments(argc, argv) == QUIT_APPLICATION) { return 0;}
@@ -490,6 +811,27 @@ int main( int argc, char *argv[]) {
 	strcat(hack_file_name, ".hack");
 	FILE *hack_file = fopen(hack_file_name, "w");
 
+	/**/
+
+	//--------- following section is different for debugging
+
+	//opening .asm file
+	FILE *asm_file = fopen("Add.asm", "r");
+	if(asm_file == NULL) {
+		printf("ERROR: file \"%s\" is not found.\n", "Add.asm");
+		return 0;
+	}
+
+	//opening .hack file
+	char hack_file_name[64];
+	strncpy(hack_file_name, "Add.asm", (strlen("Add.asm") - 4));
+	strcat(hack_file_name, ".hack");
+	FILE *hack_file = fopen(hack_file_name, "w");
+
+	//-----------
+
+	//*/
+
 	//parsing lines from asm file, converting them, then parsing into hack file
 	char asm_buffer[MAX_LINE_LENGTH] = {0};
 
@@ -506,13 +848,17 @@ int main( int argc, char *argv[]) {
 		{
 			//handle A-instruction
 
-			if(convert_dec_to_bin(asm_buffer) == QUIT_APPLICATION)
-				return 0;
+			//convert the decimal number to binary code and parse the instruction into the .hack file
+			convert_dec_to_bin(asm_buffer);
 			printf("A-Instruction Line: %s\n", asm_buffer);
+			fputs(asm_buffer, hack_file);
+			fputc('\n', hack_file);
 		}
 		else {
 		
 			//handle D-instruction
+
+			//handle jump part
 			int jump_loc = contains_jump(asm_buffer);
 			char *jump_binary = NULL;
 			if(jump_loc != 0) {
@@ -521,16 +867,36 @@ int main( int argc, char *argv[]) {
 			}
 			else {
 				printf("D-Instruction does not contain jump!\n");
+				jump_binary = "000";
 			}
 
+			//handle dest part
 			int dest_loc = contains_dest(asm_buffer);
 			char *dest_binary = NULL;
 			if(dest_loc != 0) {
 				dest_binary = get_dest_binary(asm_buffer, dest_loc);
 				printf("D-Instruction Dest: %s\n", dest_binary);
+				
+			}
+			else {
+				printf("D-Instruction does not contain dest!\n");
+				dest_binary = "000";
 			}
 			
+			//handle comp part
+			char *comp_binary = NULL;
+			comp_binary = get_comp_binary(asm_buffer, jump_loc, dest_loc);
+			printf("D-Instruction Comp: %s\n", comp_binary);
 		
+
+			//concatenate all parts together and parse into .hack file
+			char D_instruction_binary[17] = "111";
+			strcat(D_instruction_binary, comp_binary);
+			strcat(D_instruction_binary, dest_binary);
+			strcat(D_instruction_binary, jump_binary);
+			fputs(D_instruction_binary, hack_file);
+			fputc('\n', hack_file);
+
 		}
 	}
 

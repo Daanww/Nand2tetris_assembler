@@ -8,7 +8,7 @@
 			"name": "gcc-9 - Build and debug active file",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "./debug/assembler",
+			"program": "./build/assembler",
 			"args": ["Add.asm"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",

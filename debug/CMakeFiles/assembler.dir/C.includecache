@@ -7,10 +7,14 @@
 #IncludeRegexTransform: 
 
 /home/daan/Documents/vscodeprojects/assembler/main.c
+stdlib.h
+-
 stdio.h
 -
 string.h
 -
 math.h
+-
+stdbool.h
 -
 
