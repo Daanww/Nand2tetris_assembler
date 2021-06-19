@@ -811,7 +811,6 @@ char* get_comp_binary(char *buffer, int jump_character_location, int dest_charac
 }
 
 void initialize_symbol_table() {
-	initialize_table();
 	add_entry_symbol_table("SP", 0);
 	add_entry_symbol_table("LCL", 1);
 	add_entry_symbol_table("ARG", 2);
@@ -863,15 +862,15 @@ int main( int argc, char *argv[]) {
 	//--------- following section is different for debugging
 
 	//opening .asm file
-	FILE *asm_file = fopen("Mult.asm", "r");
+	FILE *asm_file = fopen("Pong.asm", "r");
 	if(asm_file == NULL) {
-		printf("ERROR: file \"%s\" is not found.\n", "Mult.asm");
+		printf("ERROR: file \"%s\" is not found.\n", "Pong.asm");
 		return 0;
 	}
 
 	//opening .hack file
 	char hack_file_name[64];
-	strncpy(hack_file_name, "Mult.asm", (strlen("Mult.asm") - 4));
+	strncpy(hack_file_name, "Pong.asm", (strlen("Pong.asm") - 4));
 	strcat(hack_file_name, ".hack");
 	FILE *hack_file = fopen(hack_file_name, "w");
 
@@ -900,7 +899,7 @@ int main( int argc, char *argv[]) {
 			strncpy(label_name, &first_pass_buffer[1], (string_length - 2));
 			label_name[string_length - 1] = '\0';
 			add_entry_symbol_table(label_name, ROM_address);
-			printf("Added \"%s\" with value %i to symbol table!\n", label_name, ROM_address);
+			//printf("Added \"%s\" with value %i to symbol table!\n", label_name, ROM_address);
 			continue;
 		}
 		
@@ -910,6 +909,7 @@ int main( int argc, char *argv[]) {
 	rewind(asm_file);
 
 	//SECOND PASS------------------------------------
+
 	printf("SECOND PASS----------------\n");
 
 	//parsing lines from asm file, converting them, then parsing into hack file
@@ -925,7 +925,7 @@ int main( int argc, char *argv[]) {
 			continue;
 
 
-		printf("Read line: %s\n", asm_buffer);
+		//printf("Read line: %s\n", asm_buffer);
 		
 		if(asm_buffer[0] == '@')
 		{
@@ -943,16 +943,22 @@ int main( int argc, char *argv[]) {
 				}
 
 				//first check if the variable already exists in the symbol table
-				if(contains_entry_symbol_table(variable_name)) {
-					variable_value = get_address_entry_symbol_table(variable_name);
-					printf("Retrieved \"%s\" with value %i from symbol table!\n", variable_name, variable_value);
+				int table_index = contains_entry_symbol_table(variable_name);
+				if(table_index != -1) {
+					variable_value = get_address_entry_symbol_table(table_index);
+					//printf("Retrieved \"%s\" with value %i from symbol table!\n", variable_name, variable_value);
+					
 				}
 				else {
 					//add new variable to symbol table, assigning it the next free ram address
-					add_entry_symbol_table(variable_name, lowest_RAM_address);
+					int result = add_entry_symbol_table(variable_name, lowest_RAM_address);
+					if(result == -1) {
+						printf("ERROR: Variable, %s, could not be added to symbol table!\n", variable_name);
+						handle_asm_code_error(variable_name, A_INSTRUCTION);
+					}
 					variable_value = lowest_RAM_address;
 					lowest_RAM_address++;
-					printf("Added \"%s\" with value %i to symbol table!\n", variable_name, variable_value);
+					//printf("Added \"%s\" with value %i to symbol table!\n", variable_name, variable_value);
 				}
 
 				//set all of asm_buffer except [0] to 0 to clean it up
@@ -965,7 +971,7 @@ int main( int argc, char *argv[]) {
 			convert_dec_to_bin(asm_buffer);
 		
 			//Parse the instruction into the .hack file
-			printf("A-Instruction Line: %s\n", asm_buffer);
+			//printf("A-Instruction Line: %s\n", asm_buffer);
 			fputs(asm_buffer, hack_file);
 			fputc('\n', hack_file);
 		}

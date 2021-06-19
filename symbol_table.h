@@ -7,10 +7,9 @@
 //its the symbol table
 //the maximum amount of entries it can hold is 128
 
-void initialize_table();
-void add_entry_symbol_table(char *string, int address);
-bool contains_entry_symbol_table(char *string);
-int get_address_entry_symbol_table(char *string);
+int add_entry_symbol_table(char *string, int address);
+int contains_entry_symbol_table(char *string);
+int get_address_entry_symbol_table(int index);
 
 
 #endif
